@@ -2,184 +2,280 @@
 
 **Course:** Docker Fundamental (Adinusa)
 **Author:** [@paladxn](https://github.com/paladxn)
-**Status:** 🚀 In Progress / Completed
+**Status:** 🚀 Ongoing (Completed: Modul 1 - 4)
 
-> Dokumen ini adalah rangkuman komprehensif (Satu File untuk Semua) dari seluruh kurikulum Docker Fundamental Adinusa. Dibuat sebagai *self-reminder*, portofolio, dan panduan praktis.
+> Dokumen ini adalah rangkuman komprehensif (Satu File untuk Semua) dari seluruh kurikulum Docker Fundamental Adinusa. Disusun sesuai urutan *Course Content* asli, dilengkapi dengan praktik lab dan *troubleshooting* nyata.
+
+---
+
+# 📘 MODUL 1: Introduction of Container
+
+### 1.1 Course Introduction & What Are Containers?
+Container adalah cara standar untuk mengemas aplikasi beserta dependensinya (library, konfigurasi) agar bisa berjalan di mana saja (Build, Ship, and Run Anywhere).
+
+### 1.2 Why are containers important?
+- Mengatasi masalah "Works on my machine" (aplikasi jalan di laptop dev, tapi error di server).
+- Jauh lebih ringan dibanding Virtual Machine (VM).
+- Mempercepat siklus rilis aplikasi (CI/CD).
+
+### 1.3 Example of Containerized Technology
+Contoh paling nyata adalah Docker Hub, tempat ribuan image siap pakai (seperti Nginx, MySQL, Redis) bisa di-*pull* dan langsung dijalankan dalam hitungan detik.
+
+### 1.4 Host, Virtual Machine and Container
+- **VM:** Memiliki OS tamu (Guest OS) lengkap, sangat berat (ukuran GB), booting lambat.
+- **Container:** Berbagi Kernel dengan Host OS, sangat ringan (ukuran MB), booting dalam milidetik.
+- **Isolasi:** Container menggunakan Linux Namespaces (untuk isolasi) dan Cgroups (untuk limit resource).
+
+### 1.5 Platform Discussion
+Komunitas belajar Docker Adinusa menggunakan Discord untuk berdiskusi terkait kendala lab dan teori.
+
+### 1.6 Lab 1.1: Preparation of Lab Environment
+**Task:** Menyiapkan VirtualBox, membuat NAT Network, Host-Only Network, dan meng-*import* VM Ubuntu 22.04 (Docker-Node01 & Docker-Node02).
+**Key Step:** Mengatur IP statis via Netplan, mengubah hostname, dan mengatur *passwordless SSH* antar node.
 
 ---
 
-# 1. Introduction of Container
-**Konsep:** Container adalah cara mengemas aplikasi beserta dependensinya dalam satu unit standar (Standardized Black Box). 
-- **Perbandingan VM vs Container:** VM memakan banyak resource karena membawa *Full OS*. Container hanya membawa *library* & *binary* aplikasi, berbagi *Kernel* dengan Host OS. (Ukuran VM: GB, Container: MB).
-- **Eksekusi:** Container berjalan sebagai proses terisolasi di Host OS menggunakan fitur Linux Kernel: `Namespaces` (isolasi) dan `Cgroups` (limit resource).
+# 📘 MODUL 2: Introduction to Docker
 
-# 2. Introduction to Docker
-**Konsep:** Docker adalah platform open-source untuk *Build, Ship, and Run* aplikasi dalam container.
-- **Arsitektur Docker:** `Docker Client` (CLI) ➡️ `Docker Daemon` (`dockerd`) ➡️ `Container Runtime` (`containerd`) ➡️ `runc`.
-- **Registry:** Tempat menyimpan image. Default-nya adalah Docker Hub (Public). Bisa juga Private Registry (seperti Harbor).
-- **Instalasi (Ubuntu):** 
-  *(Lihat Lab 1 - Instalasi Docker Engine via repository resmi).*
-  ```bash
-  # Cek versi & info setelah install
-  docker version
-  docker info
-  # Tambah user ke group docker agar tidak perlu sudo
-  sudo usermod -aG docker $USER
-  ```
+### 2.1 Docker Products & Pricing
+- **Docker CE (Community Edition):** Gratis, untuk developer individu.
+- **Docker EE (Enterprise Edition):** Berbayar, untuk perusahaan (fitur keamanan ekstra).
+- **Docker Desktop:** Gratis untuk personal/edukasi, berbayar untuk perusahaan besar (>250 karyawan).
 
-# 3. Managing Docker Container
-**Konsep:** Container memiliki *Lifecycle*: `Create` ➡️ `Start` ➡️ `Running` ➡️ `Paused` ➡️ `Exited` ➡️ `Removed`.
-- **Run Container:** `docker run -d --name <nama> -p 80:80 <image>`
-- **Eksekusi di dalam:** `docker exec -it <nama> bash` (membuka shell baru tanpa mematikan container).
-- **Monitoring:** `docker logs`, `docker stats`, `docker top`, `docker inspect`.
-- **Resource Limit:** `--memory 256m`, `--cpu-shares 512`, `--cap-drop net_raw` (mencabut hak akses jaringan).
-- **Stop vs Kill:** `stop` (graceful SIGTERM), `kill` (paksa SIGKILL).
+### 2.2 Docker Release Cycle
+Docker merilis versi stabil dua kali setahun (contoh: 24.0, 25.0), dengan siklus pemeliharaan (maintenance) selama 7 bulan sebelum versi baru dirilis.
 
-# 4. Creating Custom Docker Container Image
-**Konsep:** Image terdiri dari tumpukan *Layer* (read-only). Saat container jalan, ada *Writable Layer* di paling atas. Jika container dihapus, writable layer hilang.
-- **Dockerfile:** Resep untuk membuat image.
-  - `FROM`: Base image.
-  - `RUN`: Eksekusi saat *build* (install package).
-  - `COPY` / `ADD`: Salin file dari Host ke Image.
-  - `WORKDIR`: Set direktori kerja.
-  - `CMD` / `ENTRYPOINT`: Perintah saat container *run*.
-- **Best Practice:** Gabungkan perintah `RUN` dengan `&&` agar tidak menumpuk layer. Gunakan base image yang ringan (seperti Alpine).
-- **Registry Push:**
-  ```bash
-  docker tag <image-lokal> <username-dockerhub>/<repo>:<tag>
-  docker push <username-dockerhub>/<repo>:<tag>
-  ```
+### 2.3 Lab 2.1: Installing Docker
+**Task:** Install Docker Engine di Ubuntu via repository resmi.
+```bash
+# Install prerequisites & GPG Key
+sudo apt-get update
+sudo apt-get install ca-certificates curl -y
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-# 5. Docker Compose
-**Konsep:** Alat untuk mendefinisikan dan menjalankan aplikasi Docker *multi-container*. Cukup tulis satu file `docker-compose.yml` (atau `compose.yaml`), lalu jalankan satu perintah.
-- **Struktur File:**
-  ```yaml
-  version: '3.8'
-  services:
-    web:
-      image: nginx:alpine
-      ports:
-        - "8080:80"
-      depends_on:
-        - db
-    db:
-      image: mysql:5.7
-      environment:
-        MYSQL_ROOT_PASSWORD: rahasia
-      volumes:
-        - db_data:/var/lib/mysql
-  volumes:
-    db_data:
-  ```
-- **Perintah Utama:**
-  - `docker compose up -d`: Jalankan semua service di background.
-  - `docker compose down`: Hentikan dan hapus container.
-  - `docker compose logs -f`: Lihat log semua service.
-  - `docker compose ps`: Cek status service.
+# Tambah repository & install
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 
-# 6. Docker Continuous Integration (CI)
-**Konsep:** Integrasi Docker ke dalam *pipeline* CI/CD (seperti GitHub Actions, GitLab CI, Jenkins).
-- **Alur CI:** Push code ke Git ➡️ CI Server mendeteksi ➡️ Build Docker Image ➡️ Test Image ➡️ Push ke Registry ➡️ Deploy ke Server.
-- **GitHub Actions Example:**
-  ```yaml
-  name: Docker Build and Push
-  on: [push]
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v3
-        - name: Login to Docker Hub
-          uses: docker/login-action@v2
-          with:
-            username: ${{ secrets.DOCKER_USER }}
-            password: ${{ secrets.DOCKER_PASS }}
-        - name: Build and Push
-          uses: docker/build-push-action@v4
-          with:
-            push: true
-            tags: user/app:latest
-  ```
+# Ijinkan user menjalankan docker tanpa sudo
+sudo usermod -aG docker $USER
+sudo chmod 666 /var/run/docker.sock
 
-# 7. Docker Swarm & Portainer
-**Konsep:**
-- **Docker Swarm:** Alat *orchestration* bawaan Docker (mirip Kubernetes tapi lebih sederhana). Menggabungkan banyak Docker Host menjadi satu *Cluster*.
-  - `docker swarm init`: Inisiasi node Master.
-  - `docker service create`: Deploy aplikasi di Swarm.
-- **Portainer:** GUI (Graphical User Interface) berbasis web untuk mengelola Docker (container, image, volume, network) tanpa harus mengetik CLI.
-  - Install: `docker run -d -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer-ce`
+# Test
+docker run registry.adinusa.id/btacademy/hello-world
+```
 
-# 8. Logging Driver
-**Konsep:** Docker secara default menyimpan log container dalam file JSON di host (`json-file`). Kita bisa mengubah *driver* agar log dikirim ke sistem terpusat (seperti `syslog`, `fluentd`, `journald`, `awslogs`).
-- **Cek driver saat ini:** `docker info | grep "Logging Driver"`
-- **Jalankan dengan driver spesifik:**
-  ```bash
-  docker run --log-driver=syslog --log-opt syslog-address=udp://1.2.3.4:1111 nginx
-  ```
-- **Batasi ukuran log (Best Practice):**
-  Di `/etc/docker/daemon.json`:
-  ```json
-  {
-    "log-driver": "json-file",
-    "log-opts": { "max-size": "10m", "max-file": "3" }
-  }
-  ```
+### 2.4 Lab 2.2: Docker Run - Part 1
+**Task:** Menjalankan container Redis & Nginx (Foreground, Background, Port Mapping).
+```bash
+# Foreground (Blocking terminal)
+docker run registry.adinusa.id/btacademy/redis
 
-# 9. Health Check
-**Konsep:** Docker hanya tahu container *running* atau *stopped*. Docker tidak tahu apakah aplikasi di dalamnya *hang* atau error 500. Health Check mengecek secara berkala apakah aplikasi benar-benar sehat.
-- **Di Dockerfile:**
-  ```dockerfile
-  HEALTHCHECK --interval=30s --timeout=3s \
-    CMD curl -f http://localhost/ || exit 1
-  ```
-- **Di Docker Compose:**
-  ```yaml
-  healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost"]
-    interval: 1m30s
-    timeout: 10s
-    retries: 3
-  ```
-- **Cek status:** `docker ps` (kolom STATUS akan menampilkan `(healthy)` atau `(unhealthy)`).
+# Background (Detached)
+docker run -d --name redis1 registry.adinusa.id/btacademy/redis
 
-# 10. Security
-**Konsep:** Mengamankan container dari serangan.
-- **Gunakan Non-Root User:** Di Dockerfile, tambahkan `USER appuser` (jangan biarkan aplikasi berjalan sebagai root).
-- **Read-Only Filesystem:** `docker run --read-only <image>`.
-- **Cap Drop:** Mencabut hak akses kernel tertentu. `docker run --cap-drop=ALL --cap-add=NET_BIND_SERVICE`.
-- **Secrets Management:** Jangan simpan password di Env Variable/Dockerfile. Gunakan Docker Secrets (khusus Swarm) atau mount file rahasia secara aman.
-- **Scanning:** Gunakan alat seperti `Trivy` atau `docker scan` untuk mencari celah keamanan (CVE) di dalam image.
+# Port Mapping (Host:Container)
+docker run -d --name nginx1 -p 80:80 registry.adinusa.id/btacademy/nginx:latest
 
-# 11. Storage Driver
-**Konsep:** Driver yang mengatur bagaimana *Layer* image dan *Writable Layer* container disimpan di filesystem Host.
-- **Macam-macam:** `overlay2` (default & tercepat di Linux modern), `aufs` (lama), `btrfs`, `zfs`, `devicemapper`.
-- **Cek driver:** `docker info | grep "Storage Driver"`.
-- **Kenapa penting?** Jika storage driver bermasalah atau penuh, Docker tidak bisa membuat container baru atau memodifikasi file.
+# Random Port (Docker pilih port host acak)
+docker run -d --name nginx2 -p 80 registry.adinusa.id/btacademy/nginx:latest
+docker port nginx2 80  # Cek port acak yang didapat
+curl localhost:$(docker port nginx2 80 | cut -d : -f 2)
+```
 
-# 12. Logging and Error Handling
-**Konsep:** Cara menangani error saat container mati.
-- **Exit Codes:**
-  - `0`: Sukses.
-  - `1`: Error aplikasi.
-  - `137`: OOM (Out Of Memory) dibunuh oleh kernel / SIGKILL.
-  - `143`: Terminasi SIGTERM (biasanya karena `docker stop`).
-- **Restart Policy:**
-  ```bash
-  docker run --restart=unless-stopped nginx
-  # Opsi: no (default), on-failure, always, unless-stopped
-  ```
-- **Error Handling:** Selalu gunakan `docker logs <container>` dan `docker inspect <container> | grep -i error` untuk debugging.
+### 2.5 Lab 2.3: Docker Run - Part 2 (Exec & Ephemeral)
+**Task:** Masuk ke dalam container, install tools, dan hapus container otomatis.
+```bash
+# Masuk ke container (interactive)
+docker exec -it nginx2 /bin/bash
+apt-get update && apt-get install nano -y
+nano /usr/share/nginx/html/index.html # Edit file web
+exit
 
-# 13. Lab Challenge
-**Kumpulan Soal & Solusi Lab:**
-1. **Quiz Web Statis (Nginx):**
-   Menggunakan `COPY` untuk memindahkan file HTML ke `/usr/share/nginx/html` di dalam image Nginx.
-2. **Volume SSHFS (Remote Storage):**
-   Menginstall plugin `vieux/sshfs`, melakukan `disable` -> `set sshkey` -> `enable` -> buat volume -> mount ke container.
-3. **Troubleshooting `i/o timeout` Registry:**
-   Dilakukan dengan melakukan `docker pull` manual terlebih dahulu atau restart Daemon (`systemctl restart docker`).
-4. **Error 404 `apt-get` saat Build:**
-   Mengubah base image di Dockerfile (misal dari `ubuntu:16.04` ke `ubuntu:22.04` atau `node:18.13.0` ke `node:18`).
+# Ephemeral Container (--rm otomatis hapus saat exit)
+docker run -it --rm --name ubuntu2 registry.adinusa.id/btacademy/ubuntu
+```
+
+### 2.6 Lab 2.4: Docker Run - Part 3 (Environment, Pause, Limits)
+**Task:** Konfigurasi environment, link antar container, pause, dan limit CPU/RAM.
+```bash
+# Run MySQL dengan Environment Variables & Link
+docker run -d --name my-mysql -e MYSQL_ROOT_PASSWORD=RAHASIA -e MYSQL_DATABASE=latihan05 -p 3306:3306 registry.adinusa.id/btacademy/mysql
+docker run --name my-phpmyadmin -d --link my-mysql:db -p 8090:80 registry.adinusa.id/btacademy/phpmyadmin
+
+# Pause & Unpause (Membekukan proses)
+docker pause ubuntu1
+docker unpause ubuntu1
+
+# Resource Limit (Batasi RAM & CPU)
+docker run -d --name ch6_mariadb --memory 256m --cpu-shares 1024 -e MYSQL_ROOT_PASSWORD=test registry.adinusa.id/btacademy/mariadb:5.5
+```
 
 ---
-*Disclaimer: Catatan ini adalah rangkuman pribadi berdasarkan modul dan lab dari Adinusa Docker Fundamental.*
+
+# 📘 MODUL 3: Managing Docker Container
+
+### 3.1 & 3.2 Managing the Life Cycle of Containers
+- **Create:** `docker create` atau `docker run`
+- **Start/Stop:** `docker start`, `docker stop` (SIGTERM), `docker kill` (SIGKILL)
+- **Remove:** `docker rm` (hapus container, tapi data di writable layer hilang)
+- **Inspect:** `docker inspect` (melihat detail JSON), `docker stats` (melihat RAM/CPU), `docker top` (melihat proses).
+
+### 3.3 Public Registry & Private Registry
+- **Public:** Docker Hub (Rate limit 100 pull/6 jam untuk anonymous).
+- **Private:** Harbor (Bisa di-*host* sendiri, mendukung *role-based access control* dan *scanning vulnerability*).
+
+### 3.4 Docker Volume & Docker Network (Teori)
+- **Volume:** Direktori di host (`/var/lib/docker/volumes/`) yang di-mount ke container agar data persisten.
+- **Network:** Jaringan virtual Docker. Default-nya `bridge` (tidak support DNS by name). Harus buat `custom bridge` agar container bisa saling ping berdasarkan nama.
+
+### 3.5 Lab 3.1: Mount Volume (Local)
+**Task:** Copy file dari host ke volume container menggunakan `--volumes-from`.
+```bash
+docker create -v /my-volume --name my-volume registry.adinusa.id/btacademy/busybox
+docker cp . my-volume:/my-volume
+docker run --volumes-from my-volume registry.adinusa.id/btacademy/ubuntu ls /my-volume
+```
+
+### 3.6 Lab 3.2: Mount Volume with NFS Server
+**Task:** Membuat container NFS Server dan me-mount-nya dari node lain.
+```bash
+# Di Node01 (Server NFS)
+sudo mkdir -p /data/nfs-storage01/
+docker run -itd --privileged --restart unless-stopped -e SHARED_DIRECTORY=/data -v /data/nfs-storage01:/data -p 2049:2049 registry.adinusa.id/btacademy/nfs-server-alpine:12
+
+# Di Node02 (Client NFS)
+sudo apt install nfs-client -y
+sudo mount -v -t nfs4 10.7.7.10:/ /mnt
+sudo touch /mnt/file1.txt
+```
+
+### 3.7 Lab 3.3: Mount Volume with Read-only Mode
+**Task:** Mount volume sebagai Read-Only (`:ro`) agar container tidak bisa memodifikasi file.
+```bash
+docker volume create my-vol
+docker run -d --name=nginx-rwvol -v my-vol:/usr/share/nginx/html -p 4005:80 registry.adinusa.id/btacademy/nginx:latest
+
+# Modifikasi dari Host (Gunakan sudo tee jika permission denied)
+echo "This is from my-vol" | sudo tee /var/lib/docker/volumes/my-vol/_data/index.html
+
+# Mount Read-Only
+docker run -d --name=nginx-rovol -v my-vol:/usr/share/nginx/html:ro registry.adinusa.id/btacademy/nginx:latest
+```
+
+### 3.8 Lab 3.4: Volume Driver (SSHFS)
+**Task:** Mount direktori remote via SSH menggunakan plugin `vieux/sshfs`.
+```bash
+# ⚠️ WAJIB DISABLE DULU SEBELUM SET SSH KEY
+docker plugin install --grant-all-permissions vieux/sshfs
+docker plugin ls # Catat ID (misal: b8275dd4fb5c)
+docker plugin disable b8275dd4fb5c
+docker plugin set vieux/sshfs sshkey.source=/home/student/.ssh/
+docker plugin enable b8275dd4fb5c
+
+# Buat volume & jalankan
+docker volume create --driver vieux/sshfs -o sshcmd=student@10.7.7.20:/share -o allow_other sshvolume
+docker run -d --name=nginxtest-sshfs -p 8090:80 -v sshvolume:/usr/share/nginx/html registry.adinusa.id/btacademy/nginx:latest
+```
+
+### 3.9 Lab 3.5 & 3.6: Default Bridge vs Host Network
+**Task:** Membuktikan DNS resolution di custom bridge & perilaku host network.
+```bash
+# Default Bridge (Ping by name GAGAL)
+docker run -dit --name alpine1 registry.adinusa.id/btacademy/alpine ash
+docker run -dit --name alpine2 registry.adinusa.id/btacademy/alpine ash
+docker exec -it alpine1 ping alpine2 # Gagal!
+
+# Custom Bridge (Ping by name BERHASIL)
+docker network create --driver bridge bridge1
+docker network connect bridge1 alpine1
+docker network connect bridge1 alpine2
+docker exec -it alpine1 ping alpine2 # Berhasil!
+
+# Host Network (Port -p Diabaikan, langsung tembus host)
+docker run -itd --network host --name my_nginx registry.adinusa.id/btacademy/nginx
+```
+
+---
+
+# 📘 MODUL 4: Creating Custom Docker Container Image
+
+### 4.1 Docker Images & Registry (Teori Layer)
+Image terdiri dari tumpukan **Layer** (Read-Only). Saat container dibuat, Docker menambahkan **Writable Layer** di paling atas. Jika container dihapus, Writable Layer hilang, tapi Image (Layer di bawahnya) tetap aman dan bisa di-*share* ke container lain.
+
+### 4.2 Manipulating Container Images
+- `docker save -o file.tar <image>`: Simpan image ke file fisik (untuk backup/offline).
+- `docker load -i file.tar`: Load image dari file.
+- `docker tag <image> <user>/<repo>:<tag>`: Beri nama alias untuk push.
+- `docker push <user>/<repo>:<tag>`: Upload ke Docker Hub.
+
+### 4.3 Building & Reviewing Dockerfile
+**Instruksi Penting:**
+- `FROM`: Base image (misal `alpine`).
+- `RUN`: Eksekusi saat *build* (install package). Gabungkan dengan `&&` agar irit layer.
+- `COPY`: Copy file dari Host ke dalam Image.
+- `WORKDIR`: Set direktori kerja.
+- `CMD` & `ENTRYPOINT`: Perintah yang dijalankan saat container *start*.
+
+### 4.4 Lab 4.1: Exploring Dockerfile
+**Task:** Build image Node.js & Whalesay.
+```bash
+# ⚠️ PERBAIKAN: Jika apt-get 404, ubah base image (misal dari node:18.13.0 ke node:18)
+# ⚠️ PERBAIKAN: Jika registry timeout, lakukan 'docker pull <image>' manual dulu.
+docker build -t node-latihan01 .
+docker run -d --rm --name node-latihan01 -p 8080:8080 node-latihan01
+```
+
+### 4.5 Lab 4.2: Exploring Dockerfile (Flask Apps)
+**Task:** Build image Python Flask & Push ke Docker Hub.
+```bash
+docker build -t flask-latihan03 .
+docker tag flask-latihan03 <username_dockerhub>/flask-latihan03:latest
+docker push <username_dockerhub>/flask-latihan03:latest
+docker run -d -p 5000:5000 --name flask03 <username_dockerhub>/flask-latihan03
+```
+
+### 4.6 Lab 4.3: Exploring Dockerfile (Quiz Web Statis)
+**Task:** Menyalin file web statis ke dalam image Nginx.
+```dockerfile
+FROM registry.adinusa.id/btacademy/nginx:latest
+COPY mywebsite/ /usr/share/nginx/html/
+```
+```bash
+docker build -t latihan-quiz01-image .
+docker run -d --name quiz01 -p 80:80 latihan-quiz01-image
+```
+
+---
+
+# 🐛 KUMPULAN TROUBLESHOOTING (ERROR YANG PERNAH DIALAMI)
+
+1. **Error `404 Not Found` saat `docker build` (apt-get):**
+   - *Penyebab:* Base image terlalu tua (repositori paketnya sudah dihapus).
+   - *Solusi:* Edit Dockerfile, ganti base image ke versi yang lebih baru (misal `node:18` atau `ubuntu:22.04`).
+
+2. **Error `i/o timeout` pada `registry.adinusa.id`:**
+   - *Penyebab:* Masalah DNS lokal atau salah eksekusi di Node02.
+   - *Solusi:* Pastikan eksekusi di Node01. Jika masih timeout, `docker pull <image>` secara manual, atau restart docker (`sudo systemctl restart docker`).
+
+3. **Error `plugin vieux/sshfs is in use`:**
+   - *Penyebab:* Mencoba `disable` plugin saat volume/container masih menggunakannya.
+   - *Solusi:* Hapus container & volume dulu (`docker rm -f <container>` & `docker volume rm <volume>`), baru `disable` plugin.
+
+4. **Error `Permission denied` saat membuat `index.html` di folder Volume:**
+   - *Penyebab:* Folder `/var/lib/docker/volumes/` adalah milik `root`.
+   - *Solusi:* Jangan pakai `>` (redirection), pakai `sudo tee`: `echo "teks" | sudo tee /path/index.html`.
+
+5. **`docker inspect` IP Address mengembalikan `null`:**
+   - *Penyebab:* Perubahan format JSON di Docker versi baru.
+   - *Solusi:* Gunakan `docker inspect <container> | jq -r '.[].NetworkSettings.Networks.bridge.IPAddress'` atau cukup akses via `localhost:<port_mapping>`.
+
+6. **Tampilan masih "Welcome to nginx" setelah build Dockerfile:**
+   - *Penyebab:* File HTML tidak ter-copy ke `/usr/share/nginx/html`.
+   - *Solusi:* Cek `COPY` di Dockerfile. Pastikan nama file adalah `index.html`.
+
+---
+*Disclaimer: Catatan ini adalah rangkuman pribadi berdasarkan modul dan lab dari Adinusa Docker Fundamental. Akan terus di-update seiring berjalannya materi.*
