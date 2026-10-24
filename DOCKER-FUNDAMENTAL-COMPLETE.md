@@ -2,7 +2,7 @@
 
 **Course:** Docker Fundamental (Adinusa)
 **Author:** [@paladxn](https://github.com/paladxn)
-**Status:** 🚀 Ongoing (Completed: Modul 1 - 4)
+**Status:** 🚀 Ongoing (Completed: Modul 1 - 6)
 
 > Dokumen ini adalah rangkuman komprehensif (Satu File untuk Semua) dari seluruh kurikulum Docker Fundamental Adinusa. Disusun sesuai urutan *Course Content* asli, dilengkapi dengan praktik lab dan *troubleshooting* nyata.
 
@@ -251,6 +251,105 @@ docker run -d --name quiz01 -p 80:80 latihan-quiz01-image
 
 ---
 
+# 📘 MODUL 5: Docker Compose
+
+### 5.1 Konsep Declarative vs Imperative
+- **Imperative (Cara Lama):** Kita memberikan perintah spesifik langkah demi langkah ke Docker (`docker run`, `docker network create`, dll). Jika ada error, kita harus perbaiki manual.
+- **Declarative (Cara Compose):** Kita hanya mendefinisikan "Apa yang kita inginkan" (state akhir) di dalam file YAML. Docker akan otomatis mengurus langkah-langkah untuk mencapai state tersebut.
+
+### 5.2 Struktur File `docker-compose.yml`
+```yaml
+services:
+  web:
+    image: palopalepalo/web:1.0
+    build: web  # Build dari folder 'web' jika image belum ada
+    ports:
+      - "80:3000"
+  db:
+    image: postgres:12-alpine
+    volumes:
+      - pets-data:/var/lib/postgresql/data
+
+volumes:
+  pets-data: # Volume harus dideklarasikan di sini
+```
+
+### 5.3 Perintah Penting Docker Compose
+| Perintah | Fungsi |
+|---|---|
+| `docker compose up -d` | Jalankan semua service di background. |
+| `docker compose ps` | Lihat status container (hanya yang ada di compose file). |
+| `docker compose down` | Hentikan & hapus container, network (tapi volume tetap ada). |
+| `docker compose down -v` | Hentikan & hapus container, network, **dan volume**. |
+| `docker compose -p <nama> up` | Menjalankan dengan nama project kustom (bukan nama folder). |
+
+### 5.4 Scaling Service
+Jika kita ingin menjalankan 3 container untuk service `web`:
+```bash
+docker compose up -d --scale web=3
+```
+*⚠️ Peringatan:* Jika di `ports` kita menulis `"80:3000"`, scaling akan **gagal** karena port 80 host bentrok. 
+**Solusi:** Cukup tulis port container-nya saja (`- "3000"`), maka Docker akan memberikan port host acak untuk setiap instance.
+
+### 5.5 Lab 5.1: Using Docker Compose (WordPress & MySQL)
+**Task:** Membuat stack WordPress + MySQL menggunakan Compose.
+*⚠️ **CATATAN PENTING:** Gunakan plugin Compose V2 (`docker compose` pakai spasi). Jangan mengunduh binary `docker-compose` manual karena sering `Segmentation fault`.*
+
+```yaml
+services:
+  db:
+    image: registry.adinusa.id/btacademy/mysql:5.7
+    volumes:
+      - dbdata:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: somewordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: [username]
+      MYSQL_PASSWORD: [password]
+
+  wordpress:
+    depends_on:
+      - db
+    image: registry.adinusa.id/btacademy/wordpress:latest
+    ports:
+      - "8000:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: [username]
+      WORDPRESS_DB_PASSWORD: [password]
+volumes:
+  dbdata:
+```
+```bash
+# Jalankan (Gunakan Spasi, bukan tanda hubung)
+docker compose up -d
+docker ps
+```
+
+---
+
+# 📘 MODUL 6: Docker Continuous Integration (CI)
+
+### 6.1 Apa itu CI/CD?
+**Continuous Integration (CI)** adalah praktik developer menggabungkan kode ke repositori (seperti GitHub) beberapa kali sehari. Setiap *commit* akan memicu *automated build* dan *testing* untuk mendeteksi *bug* lebih awal.
+
+### 6.2 Alur CI dengan Docker (Jenkins/GitHub Actions)
+1. Developer `git push` ke GitHub.
+2. GitHub mengirim *webhook* ke Jenkins (atau GitHub Actions).
+3. Jenkins *pull* repository (termasuk Dockerfile).
+4. Jenkins melakukan `docker build`.
+5. Jenkins menjalankan container untuk testing.
+6. Jika test lolos, image di-`docker push` ke Docker Hub / Private Registry.
+
+### 6.3 Docker Hub Automated Build
+Docker Hub bisa terhubung langsung ke repositori GitHub. 
+- Setiap kali kamu push kode ke branch tertentu (misal `main`), Docker Hub akan otomatis melakukan build image dan menyimpannya.
+- Status build bisa dilihat: `Queued` (Antre), `Building` (Proses), `Success` (Berhasil), `Error` (Gagal).
+
+---
+
 # 🐛 KUMPULAN TROUBLESHOOTING (ERROR YANG PERNAH DIALAMI)
 
 1. **Error `404 Not Found` saat `docker build` (apt-get):**
@@ -276,6 +375,10 @@ docker run -d --name quiz01 -p 80:80 latihan-quiz01-image
 6. **Tampilan masih "Welcome to nginx" setelah build Dockerfile:**
    - *Penyebab:* File HTML tidak ter-copy ke `/usr/share/nginx/html`.
    - *Solusi:* Cek `COPY` di Dockerfile. Pastikan nama file adalah `index.html`.
+
+7. **Error `Segmentation fault` saat `docker-compose --version`:**
+   - *Penyebab:* Mengunduh binary Compose V1 (Python) yang tidak cocok dengan OS/arsitektur.
+   - *Solusi:* Hapus binary lama (`sudo rm -f /usr/bin/docker-compose`), lalu install plugin V2 (`sudo apt install docker-compose-plugin -y`). Gunakan perintah `docker compose` (pakai spasi).
 
 ---
 *Disclaimer: Catatan ini adalah rangkuman pribadi berdasarkan modul dan lab dari Adinusa Docker Fundamental. Akan terus di-update seiring berjalannya materi.*
